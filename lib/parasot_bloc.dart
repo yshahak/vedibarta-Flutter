@@ -94,6 +94,7 @@ class ParashotBloc {
       endSession();
       return;
     }
+
     List segments = Uri
         .parse("$_urlBase${_currentParasha.zipFiles}")
         .pathSegments;
