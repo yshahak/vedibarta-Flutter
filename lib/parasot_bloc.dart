@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:rxdart/rxdart.dart';
 import 'package:vedibarta/parashot.dart';
-//import 'package:audioplayers/audioplayers.dart';
 import 'package:audioplayer/audioplayer.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class ParashotBloc {
 
   final String _urlBase = "http://www.vedibarta.org/Rashi_Tora_MP3/";
-
+  FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
   final AudioPlayer _audioPlayer = AudioPlayer();
   Par _currentParasha;
   var _currentTrackIndex;
@@ -17,6 +17,12 @@ class ParashotBloc {
 
   Sink<Par> get onParClick => _onParClickController.sink;
   Sink<PlayActionType> get onPlayActionClick => _onPlayActionController.sink;
+
+  final _playerStateSubject = BehaviorSubject<PlayerState>();
+  final _parashotSubject = PublishSubject<Map<String, Map<String, Par>>>();
+  final _currentTimeSubject = BehaviorSubject<String>();
+  final _currentTrackSubject = BehaviorSubject<String>();
+  final _currentProgressSubject = BehaviorSubject<double>();
 
   Stream<Map<String, Map<String, Par>>> get parashot => _parashotSubject.stream;
   Stream<PlayerState> get playerState => _playerStateSubject.stream;
@@ -28,6 +34,15 @@ class ParashotBloc {
   final _onPlayActionController = StreamController<PlayActionType>();
 
   ParashotBloc(){
+    var initializationSettingsAndroid =
+    new AndroidInitializationSettings('ic_launcher');
+    var initializationSettingsIOS = new IOSInitializationSettings();
+    var initializationSettings = new InitializationSettings(
+        initializationSettingsAndroid, initializationSettingsIOS);
+    _flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
+    _flutterLocalNotificationsPlugin.initialize(initializationSettings,
+        onSelectNotification: onSelectNotification);
+
     _onParClickController.stream.listen((parasha) async {
       _currentParasha = parasha;
       _currentTrackIndex = 0;
@@ -75,11 +90,12 @@ class ParashotBloc {
     });
   }
 
-  final _playerStateSubject = BehaviorSubject<PlayerState>();
-  final _parashotSubject = PublishSubject<Map<String, Map<String, Par>>>();
-  final _currentTimeSubject = BehaviorSubject<String>();
-  final _currentTrackSubject = BehaviorSubject<String>();
-  final _currentProgressSubject = BehaviorSubject<double>();
+
+  Future onSelectNotification(String payload) async {
+    if (payload != null) {
+      print('notification payload: ' + payload);
+    }
+  }
 
   Future<Null> _getParashot() async {
     _pars = await AllParashot.getPars();
@@ -94,6 +110,7 @@ class ParashotBloc {
       endSession();
       return;
     }
+    displayNotification();
     List segments = Uri
         .parse("$_urlBase${_currentParasha.zipFiles}")
         .pathSegments;
@@ -154,6 +171,18 @@ class ParashotBloc {
     _currentTrackSubject.add("");
     _isPlaying = false;
     _playerStateSubject.add(PlayerState.pausing);
+  }
+
+  void displayNotification() async {
+    var androidPlatformChannelSpecifics = new AndroidNotificationDetails(
+        'your channel id', 'your channel name', 'your channel description',
+        importance: Importance.Max, priority: Priority.High);
+    var iOSPlatformChannelSpecifics = new IOSNotificationDetails();
+    var platformChannelSpecifics = new NotificationDetails(
+        androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
+    await _flutterLocalNotificationsPlugin.show(
+        0, 'plain title', 'plain body', platformChannelSpecifics,
+        payload: 'item id 2');
   }
 }
 
