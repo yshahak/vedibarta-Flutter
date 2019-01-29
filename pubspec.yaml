@@ -26,7 +26,8 @@ dependencies:
   audioplayer:
     path: ./audioplayer
   rxdart: ^0.18.1
-  flutter_local_notifications: ^0.4.2+1
+  flutter_local_notifications: ^0.4.4+2
+  tuple: ^1.0.2
 
 dev_dependencies:
   flutter_test:

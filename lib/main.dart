@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tuple/tuple.dart';
 import 'package:vedibarta/parasot_bloc.dart';
 
 //import 'package:shared_preferences/shared_preferences.dart';
@@ -48,6 +49,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _showBottomSheetCallback = _showBottomSheet;
+    widget.parashotBloc.playerState.listen((newState) {
+      if (newState == PlayerState.restored || newState == PlayerState.playing) {
+        _showBottomSheet();
+      }
+    });
   }
 
   void _showBottomSheet() {
@@ -188,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ExpansionTile(
                     title: Text(titles[position],
                         textDirection: TextDirection.rtl),
-                    children: <Widget>[_getBookListView(pars[position])],
+                    children: <Widget>[_getBookListView(pars[position], titles[position])],
                   ));
         },
       ),
@@ -201,18 +207,18 @@ class _MyHomePageState extends State<MyHomePage> {
     widget.parashotBloc.close();
   }
 
-  Widget _getBookListView(Map<String, Par> book) {
+  Widget _getBookListView(Map<String, Par> book, String bookName) {
     var toList = book.values.toList();
     return ListView.builder(
         physics: ScrollPhysics(),
         shrinkWrap: true,
         itemCount: book.length,
         itemBuilder: (BuildContext context, int position) {
-          return getRow(toList[position]);
+          return getRow(toList[position], bookName);
         });
   }
 
-  Widget getRow(Par parasha) {
+  Widget getRow(Par parasha, String bookName) {
     return GestureDetector(
       child: Padding(
           padding: EdgeInsets.fromLTRB(20.0, 5.0, 20.0, 5.0),
@@ -232,7 +238,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(
                 child: MaterialButton(
                   onPressed: () {
-                    widget.parashotBloc.onParClick.add(parasha);
+                    widget.parashotBloc.onParClick.add(new Tuple2(bookName, parasha));
                     _showBottomSheet();
                   },
                   child: Icon(Icons.play_circle_outline),
