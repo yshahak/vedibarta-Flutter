@@ -135,14 +135,19 @@ class ParashotBloc {
         _currentTrackIndex = prefs.getInt("currentIndex");
         var position = prefs.getInt("currentPosition");
         var totalDuration = prefs.getInt("totalPosition");
+        if (totalDuration == null) {
+          String durationInString = _currentParasha.mp3List[_currentTrackIndex][2];
+          int minutes = int.tryParse(durationInString.split(":")[0]);
+          int seconds = int.tryParse(durationInString.split(":")[1]);
+          totalDuration = minutes * 60 + seconds;
+        }
         print("player has restored!\tposition=$position");
         _prepareTrack();
         _currentDuration = Duration(seconds: position);
         var total = Duration(seconds: totalDuration);
         _currentTimeSubject.add(
             "${_getTime(_currentDuration)}/${_getTime(total)}");
-        _currentProgressSubject.add(
-            _currentDuration.inSeconds / total.inSeconds);
+        _currentProgressSubject.add(_currentDuration.inSeconds / total.inSeconds);
 //        await _audioPlayer.seek(position.toDouble());
 //        await _pauseTrack();
         _playerStateSubject.add(PlayerState.restored);
@@ -182,8 +187,8 @@ class ParashotBloc {
   Future _playTrack() async {
     var currentTrackLabel = " פרשת ${_currentParasha.hebName} ${_currentTrackIndex + 1}/${_currentParasha.mp3List.length}";
     displayNotification(" פרשת ${_currentParasha.hebName}", currentTrackLabel);
-    print("will start play $_currentUri");
-    await _audioPlayer.play(_currentUri);
+    print("will start play $_currentUri\t_currentDuration=${_currentDuration.inSeconds}");
+    await _audioPlayer.play(_currentUri, prepareSync: true);
     await _audioPlayer.seek(_currentDuration.inSeconds.toDouble());
   }
 

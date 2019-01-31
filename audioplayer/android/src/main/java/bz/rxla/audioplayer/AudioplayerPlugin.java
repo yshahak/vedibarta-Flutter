@@ -45,7 +45,7 @@ public class AudioplayerPlugin implements MethodCallHandler {
         android.util.Log.d("AudioplayerPlugin", "the method was called is: " + call.method);
         switch (call.method) {
             case "play":
-                play(call.argument("url").toString());
+                play(call.argument("url").toString(), (boolean) call.argument("prepareSync"));
                 response.success(null);
                 break;
             case "pause":
@@ -101,28 +101,33 @@ public class AudioplayerPlugin implements MethodCallHandler {
         }
     }
 
-    private void play(String url) {
+    private void play(String url, boolean prepareSync) {
         if (mediaPlayer == null) {
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
             try {
                 mediaPlayer.setDataSource(url);
+                if (prepareSync) {
+                    mediaPlayer.prepare();
+                    mediaPlayer.start();
+                    channel.invokeMethod("audio.onStart", mediaPlayer.getDuration());
+                } else {
+                    mediaPlayer.prepareAsync();
+                    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                        @Override
+                        public void onPrepared(MediaPlayer mp) {
+                            mediaPlayer.start();
+                            channel.invokeMethod("audio.onStart", mediaPlayer.getDuration());
+                        }
+                    });
+                }
             } catch (IOException e) {
                 Log.w(ID, "Invalid DataSource", e);
                 channel.invokeMethod("audio.onError", "Invalid Datasource");
                 return;
             }
 
-            mediaPlayer.prepareAsync();
-
-            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    mediaPlayer.start();
-                    channel.invokeMethod("audio.onStart", mediaPlayer.getDuration());
-                }
-            });
 
             mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
